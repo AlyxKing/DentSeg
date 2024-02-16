@@ -21,7 +21,7 @@ git clone https://github.com/yourgithubusername/dental-segmentation-flexible-une
 
 2. Navigate to the project directory:
 ```
-d dental-segmentation-flexible-unet
+cd dental-segmentation-flexible-unet
 ```
 
 3. Install the required dependencies. Ensure you have Python and PyTorch installed, then install the other dependencies as detailed in `dentsegdataset.py` and `HalfUNet` files.
