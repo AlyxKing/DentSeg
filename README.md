@@ -30,6 +30,8 @@ cd dental-segmentation-flexible-unet
 
 The dental X-ray image dataset used in training was sourced from [Humans in the Loop Dental x-ray imagery](https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images)
 
+A slimmed down [archive](dentseg_dataset.tar.gz) of the dataset is provided 
+
 ## Usage
 
 After installation, the project can be run from the command line for processing dental X-ray images. Detailed usage instructions and command-line interface (CLI) options will be provided, allowing users to specify model checkpoints and configuration settings.
