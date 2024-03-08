@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you use this dataset or build upon the research cited here, please cite the following."
 references:
   - type: dataset
     title: "Teeth Segmentation on dental X-ray images"
@@ -7,9 +7,8 @@ references:
       - name: "Humans In The Loop"
     year: 2023
     doi: "10.34740/KAGGLE/DSV/5884500"
-    url: "https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-xray-images"
+    url: "https://doi.org/10.34740/KAGGLE/DSV/5884500"
     publisher: "Kaggle"
-
   - type: article
     authors:
       - family-names: "Lu"
@@ -26,10 +25,7 @@ references:
     year: 2022
     doi: "10.3389/fninf.2022.911679"
     url: "https://www.frontiersin.org/articles/10.3389/fninf.2022.911679"
-    issn: "1662-5196"
-
   - type: article
-    title: "GhostNet: More Features from Cheap Operations"
     authors:
       - family-names: "Han"
         given-names: "Kai"
@@ -43,6 +39,7 @@ references:
         given-names: "Chunjing"
       - family-names: "Xu"
         given-names: "Chang"
+    title: "GhostNet: More Features from Cheap Operations"
     year: 2020
     url: "https://arxiv.org/abs/1911.11907"
     note: "arXiv:1911.11907 [cs.CV]"
