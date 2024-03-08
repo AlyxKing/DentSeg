@@ -26,6 +26,19 @@ cd dental-segmentation-flexible-unet
 
 3. Install the required dependencies. Ensure you have Python and PyTorch installed, then install the other dependencies as detailed in `requirements.txt`.
 
+## Dataset
+
+The dental X-ray image dataset used in training was sourced from [https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images](Kaggle)
+
+@misc{humans_in_the_loop_2023,
+	title={Teeth Segmentation on dental X-ray images},
+	url={https://www.kaggle.com/dsv/5884500},
+	DOI={10.34740/KAGGLE/DSV/5884500},
+	publisher={Kaggle},
+	author={Humans In The Loop},
+	year={2023}
+}
+
 ## Usage
 
 After installation, the project can be run from the command line for processing dental X-ray images. Detailed usage instructions and command-line interface (CLI) options will be provided, allowing users to specify model checkpoints and configuration settings.
