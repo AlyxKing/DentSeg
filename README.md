@@ -10,9 +10,17 @@ This project showcases the segmentation of dental X-ray imagery using a PyTorch 
 - **Ghost Module Integration**: Utilizes "cheap operations" to generate additional feature layers, maintaining the model's capability while making computational savings.
 - **Configurable Channels**: Offers the option to fix channels throughout the U-Net, adhering to the methodologies proposed by the Half U-Net paper.
 
+
+## Dataset
+
+The dental X-ray image dataset used in training was sourced from [Humans in the Loop Dental x-ray imagery](https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images)
+
+A slimmed down [archive](dentseg_dataset.tar.gz) of the dataset is provided. 
+
+
 ## Installation
 
-To install and run the Dental Segmentation project, follow these steps:
+### From Source
 
 1. Clone the repository to your local machine:
 ```
@@ -21,20 +29,36 @@ git clone https://github.com/alyxking/dentseg.git
 
 2. Navigate to the project directory:
 ```
-cd dental-segmentation-flexible-unet
+cd dentseg
 ```
 
-3. Install the required dependencies. Ensure you have Python and PyTorch installed, then install the other dependencies as detailed in `requirements.txt`.
+3. Ensure required dependencies as detailed in `requirements.txt` are installed. Or, run from the container environment as follows.
 
-## Dataset
+### From Container
 
-The dental X-ray image dataset used in training was sourced from [Humans in the Loop Dental x-ray imagery](https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images)
+1. Pull the docker image
+```
+docker pull ghcr.io/alyxking/dentseg:tag
+```
+2. Extract the dataset archive
 
-A slimmed down [archive](dentseg_dataset.tar.gz) of the dataset is provided 
+2. Run the container (set DATASET_HOST_PATH and SRC_HOST_PATH)
+```
+docker run --rm --gpus all \
+  -v "DATASET_HOST_PATH:/app/dataset" \
+  -v "SRC_HOST_PATH:/app/src" \
+  -p "80:80" \
+  -p "8888:8888" \
+  --name dentseg dentseg \
+  jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+```
 
 ## Usage
 
-After installation, the project can be run from the command line for processing dental X-ray images. Detailed usage instructions and command-line interface (CLI) options will be provided, allowing users to specify model checkpoints and configuration settings.
+Cloned repo: Extract the dataset archive and designate the path in dentsegdataset.py
+
+From container:
+CLI usage is WIP. Run from the Jupyter Notebook 
 
 ## License
 
