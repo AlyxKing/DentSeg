@@ -55,7 +55,7 @@ docker run --rm --gpus all \
 
 ## Usage
 
-The DentSeg model can be configured and run with various parameters to suit your dataset and training requirements. This section outlines the available options and their default values.
+The DentSeg model can be configured and run with various parameters to suit your dataset and training requirements. Default values and available options are outlined as follows.
 
 ### Configuration Parameters
 
@@ -74,10 +74,19 @@ To configure and run the model, you can use the following command-line arguments
 * <strong><code>--out_c</code></strong> (default: <code>1</code>): Specify the number of output channels.
 * <strong><code>--flat</code></strong>: Use this flag to opt for a half U-Net unified channel width. The absence of this flag defaults to the standard U-Net channel doubling with each down step.
 
+### **Model Loading Configuration Parameters**
+
+Further customize the model setup with these additional parameters:
+
+* **<code>--load_model</code></strong>: Use this flag to enable loading a pre-trained model before starting the training process. This is an ON/OFF flag; include it in your command to turn it ON.
+* <strong><code>--model_name</code></strong> (default: <code>None</code>): If you're loading a pre-trained model and it has a different name from the <code>run_name</code>, specify the model's name with this argument. This is particularly useful when you wish to continue training from a previously saved model state or evaluate a pre-trained model.
+* <strong><code>--eval</code></strong>: This flag sets the model to eval mode only, training is skipped and only testing is carried out on the dataset.
+* <strong><code>--full_model</code></strong>: This flag controls how the model is loaded. By default, the model loading mechanism expects a state dictionary. If your saved model includes more complex structures (e.g., optimizers, schedulers), use this flag to load the full model. This is an ON/OFF flag; include it in your command to turn it ON.
+
 
 #### Example Command
 
-To run the model with custom settings, use a command similar to the following example:
+To run train/evaluate from CLI, use a command similar to the following example:
 
 ```
 
@@ -99,7 +108,7 @@ The model supports a variety of loss functions for training and evaluation:
 * **DISCLOSS:** Discriminative Loss (for multi-instance segmentation only)
 
 
-### From container:
+### Running from container:
 
 Run from the included ipynb notebook, or add configuration command to the docker command/ enter terminal inside container.
 
@@ -137,7 +146,7 @@ This project was based on the architecture from the papers on Half U-Net archite
 }
 ```
 ```
-@misc{Han2020GhostNet,
+@article{Han2020GhostNet,
   author       = {Kai Han and Yunhe Wang and Qi Tian and Jianyuan Guo and Chunjing Xu and Chang Xu},
   title        = {{GhostNet: More Features from Cheap Operations}},
   year         = 2020,
