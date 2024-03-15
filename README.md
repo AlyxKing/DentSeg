@@ -55,7 +55,7 @@ docker run --rm --gpus all \
 
 ## Usage
 
-The DentSeg model can be configured and run with various parameters to suit your dataset and training requirements. This section outlines the available options and their default values.
+The DentSeg model can be configured and run with various parameters to suit your dataset and training requirements. Default values and available options are outlined as follows.
 
 ### Configuration Parameters
 
@@ -146,7 +146,7 @@ This project was based on the architecture from the papers on Half U-Net archite
 }
 ```
 ```
-@misc{Han2020GhostNet,
+@article{Han2020GhostNet,
   author       = {Kai Han and Yunhe Wang and Qi Tian and Jianyuan Guo and Chunjing Xu and Chang Xu},
   title        = {{GhostNet: More Features from Cheap Operations}},
   year         = 2020,
