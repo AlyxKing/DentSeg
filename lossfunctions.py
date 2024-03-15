@@ -35,7 +35,7 @@ def loss_function(function='BCE', ratio=10.0):
     loss_functions['FOCAL'] = FocalLoss()       
     loss_functions['TVERSKY'] = TverskyLoss()
     loss_functions['FOCALTVERSKY'] = FocalTverskyLoss()
-    #loss_functions['DISCLOSS'] = DiscLoss(func=loss_functions['FOCALTVERSKY'])
+    #For use in multi-instance mode only
     loss_functions['DISCLOSS'] = DiscLoss(func=loss_functions["DICEBCE"], weight=pos_weight*10)
     return loss_functions[function]
 

@@ -316,35 +316,48 @@ def load_dec(func, model_path, full_model=False):
         return func(*argv,**kwargs,model=model)
     return wrapper
 
-def config(*argv):
+def create_argparse():
     import argparse
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args(args=[])
-    args.run_name = "DentSeg7"
-    args.epochs = 10
-    args.batch_size = 25
-    args.image_size = 256
-    #images, masks, or mask class/poly data must be in this path (img, ann)
-    #Local Use
-    #args.dataset_path = r"/mnt/dsml/datasets/dentseg/Teeth Segmentation JSON/d2"
-    #Container Use
-    args.dataset_path = r"/app/dataset"
-    args.device = "cuda:0"
-    #training loss function 
-    args.lossfunc = "DICEBCE"
-    #evaluation score function
-    args.evalfunc = "IOU"
-    args.lr = 1e-4
-    args.in_c = 1
-    args.out_c = 1
-    args.flat = False
-    return args
+    description = """
+    Configure and run the DentSeg model. Available loss functions for training and evaluation include:
+    - BCE: Binary Cross-Entropy Loss
+    - IOU: Intersection Over Union Loss
+    - DICE: Dice Loss
+    - DICEBCE: Combination of Dice and BCE Loss
+    - FOCAL: Focal Loss
+    - TVERSKY: Tversky Loss
+    - FOCALTVERSKY: Focal Tversky Loss
+    - DISCLOSS: Discriminative Loss (for multi-instance segmentation only)
+    """
+    
+    # Initialize the parser    
+    parser = argparse.ArgumentParser(description=description)
+    
+    # Define arguments
+    parser.add_argument("--run_name", default="DentSeg0", type=str, help="Name of the run")
+    parser.add_argument("--epochs", default=10, type=int, help="Number of epochs for training")
+    parser.add_argument("--batch_size", default=25, type=int, help="Batch size for training")
+    parser.add_argument("--image_size", default=256, type=int, help="Input image size")
+    parser.add_argument("--dataset_path", default="/app/dataset", type=str, 
+                        help="Path to the dataset. Should include images and annotations.")
+    parser.add_argument("--device", default="cuda:0", type=str, help="Device for training (e.g., 'cuda:0')")
+    parser.add_argument("--lossfunc", default="DICEBCE", type=str, 
+                        help="Loss function for training (e.g., 'DICEBCE')")
+    parser.add_argument("--evalfunc", default="IOU", type=str, 
+                        help="Evaluation function for model performance (e.g., 'IOU')")
+    parser.add_argument("--lr", default=1e-4, type=float, help="Learning rate")
+    parser.add_argument("--in_c", default=1, type=int, help="No. of input channels")
+    parser.add_argument("--out_c", default=1, type=int, help="No. of output channels")
+    parser.add_argument("--flat", action='store_true', help="ON/OFF flag for half U-Net unified channel width")
+
+    return parser
     
 def launch(only_test=False, load_model=False, 
            model_name=None, full_model=False) -> tuple:
     os.chdir('/')
-    args = config()
-    dataset = DentsegDataset(conf=config(), transform=True)
+    parser = create_argparse()
+    args = parser.parse_args()
+    dataset = DentsegDataset(conf=args, transform=True)
     generator = torch.Generator().manual_seed(42)
     train_data, test_data = random_split(dataset, [500,95],generator=generator)
     
@@ -373,18 +386,7 @@ def launch(only_test=False, load_model=False,
     output = test(args, test_data, model)[0]
     return model, output
 
-# if __name__ == '__main__':
-#     launch()
-#     device = "cuda"
-#     model = HUNet().to(device)
-#     # ckpt = torch.load("./working/orig/ckpt.pt")
-#     # model.load_state_dict(ckpt)
-#     # diffusion = Diffusion(img_size=64, device=device)
-#     # x = diffusion.sample(model, 8)
-#     # print(x.shape)
-#     # plt.figure(figsize=(32, 32))
-#     # plt.imshow(torch.cat([
-#     #     torch.cat([i for i in x.cpu()], dim=-1),
-#     # ], dim=-2).permute(1, 2, 0).cpu())
-#     # plt.show()
+if __name__ == '__main__':
+    model, output = launch()
+
 
