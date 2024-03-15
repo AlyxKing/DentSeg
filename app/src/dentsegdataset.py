@@ -349,7 +349,9 @@ def create_argparse():
     parser.add_argument("--in_c", default=1, type=int, help="No. of input channels")
     parser.add_argument("--out_c", default=1, type=int, help="No. of output channels")
     parser.add_argument("--flat", action='store_true', help="ON/OFF flag for half U-Net unified channel width")
-
+    parser.add_argument("--load_model", action='store_true', help="ON/OFF flag for loading model")
+    parser.add_argument("--model_name", default=None, type=str, help="Specify model to load (if different from run_name)")
+    parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
     return parser
     
 def launch(only_test=False, load_model=False, 
