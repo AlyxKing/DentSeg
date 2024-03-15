@@ -351,14 +351,20 @@ def create_argparse():
     parser.add_argument("--flat", action='store_true', help="ON/OFF flag for half U-Net unified channel width")
     parser.add_argument("--load_model", action='store_true', help="ON/OFF flag for loading model")
     parser.add_argument("--model_name", default=None, type=str, help="Specify model to load (if different from run_name)")
+    parser.add_argument("--eval", action='store_true', help='ON/OFF flag for setting the model to evaluation mode (loaded')
     parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
     return parser
     
-def launch(only_test=False, load_model=False, 
-           model_name=None, full_model=False) -> tuple:
+def launch() -> tuple:
     os.chdir('/')
     parser = create_argparse()
     args = parser.parse_args()
+    
+    only_test = args.eval
+    load_model = args.load_model
+    model_name = args.model_name
+    full_model = args.model
+    
     dataset = DentsegDataset(conf=args, transform=True)
     generator = torch.Generator().manual_seed(42)
     train_data, test_data = random_split(dataset, [500,95],generator=generator)
