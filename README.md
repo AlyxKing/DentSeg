@@ -55,10 +55,53 @@ docker run --rm --gpus all \
 
 ## Usage
 
-Cloned repo: Extract the dataset archive and designate the path in dentsegdataset.py
+The DentSeg model can be configured and run with various parameters to suit your dataset and training requirements. This section outlines the available options and their default values.
 
-From container:
-CLI usage is WIP. Run from the Jupyter Notebook 
+### Configuration Parameters
+
+To configure and run the model, you can use the following command-line arguments:
+
+* **<code>--run_name</code></strong> (default: <code>DentSeg7</code>): Set the name of the run.
+* <strong><code>--epochs</code></strong> (default: <code>10</code>): Specify the number of epochs for training.
+* <strong><code>--batch_size</code></strong> (default: <code>25</code>): Set the batch size for training.
+* <strong><code>--image_size</code></strong> (default: <code>256</code>): Define the input image size.
+* <strong><code>--dataset_path</code></strong> (default: <code>/app/dataset</code>): Provide the path to the dataset. The path should include both images and annotations.
+* <strong><code>--device</code></strong> (default: <code>cuda:0</code>): Choose the device for training (e.g., <code>'cuda:0'</code>).
+* <strong><code>--lossfunc</code></strong> (default: <code>DICEBCE</code>): Select the loss function for training. Refer to the available loss functions above.
+* <strong><code>--evalfunc</code></strong> (default: <code>IOU</code>): Choose the evaluation function to assess model performance.
+* <strong><code>--lr</code></strong> (default: <code>1e-4</code>): Set the learning rate.
+* <strong><code>--in_c</code></strong> (default: <code>1</code>): Specify the number of input channels.
+* <strong><code>--out_c</code></strong> (default: <code>1</code>): Specify the number of output channels.
+* <strong><code>--flat</code></strong>: Use this flag to opt for a half U-Net unified channel width. The absence of this flag defaults to the standard U-Net channel doubling with each down step.
+
+
+#### Example Command
+
+To run the model with custom settings, use a command similar to the following example:
+
+```
+
+python dentsegdataset.py --run_name DentSeg5 --epochs 200 --batch_size 4 --image_size 512 --dataset_path /path/to/the/dataset --device cuda:0 --lossfunc DICEBCE --evalfunc IOU --lr 0.0001 --in_c 3 --out_c 3 --flat
+
+```
+
+#### Available Loss Functions
+
+The model supports a variety of loss functions for training and evaluation:
+
+* **BCE:** Binary Cross-Entropy Loss
+* **IOU:** Intersection Over Union Loss
+* **DICE:** Dice Loss
+* **DICEBCE:** Combination of Dice and BCE Loss
+* **FOCAL:** Focal Loss
+* **TVERSKY:** Tversky Loss
+* **FOCALTVERSKY:** Focal Tversky Loss
+* **DISCLOSS:** Discriminative Loss (for multi-instance segmentation only)
+
+
+### From container:
+
+Run from the included ipynb notebook, or add configuration command to the docker command/ enter terminal inside container.
 
 ## License
 
