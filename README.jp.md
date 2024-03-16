@@ -162,3 +162,37 @@ python dentsegdataset.py --run_name DentSeg5 --epochs 200 --batch_size 4 --image
 
 
 ## **参考文献**
+
+```
+@dataset{HumansInTheLoop2023,
+  author       = {Humans In The Loop},
+  title        = {{Teeth Segmentation on dental X-ray images}},
+  year         = 2023,
+  publisher    = {Kaggle},
+  version      = {1},
+  doi          = {10.34740/KAGGLE/DSV/5884500},
+  url          = {https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-xray-images}
+}
+```
+```
+@article{LuHaoran2022,
+  author       = {Lu Haoran and She Yifei and Tie Jun and Xu Shengzhou},
+  title        = {{Half-UNet: A Simplified U-Net Architecture for Medical Image Segmentation}},
+  journal      = {Frontiers in Neuroinformatics},
+  volume       = {16},
+  year         = 2022,
+  doi          = {10.3389/fninf.2022.911679},
+  url          = {https://www.frontiersin.org/articles/10.3389/fninf.2022.911679},
+  issn         = {1662-5196}
+}
+```
+```
+@article{Han2020GhostNet,
+  author       = {Kai Han and Yunhe Wang and Qi Tian and Jianyuan Guo and Chunjing Xu and Chang Xu},
+  title        = {{GhostNet: More Features from Cheap Operations}},
+  year         = 2020,
+  eprint       = {1911.11907},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/1911.11907}
+}
