@@ -318,6 +318,9 @@ def load_dec(func, model_path, full_model=False):
 
 def create_argparse():
     import argparse
+    
+    prog = 'Medical Segmentation with flexible U-Net'
+    
     description = """
     Configure and run the DentSeg model. Available loss functions for training and evaluation include:
     - BCE: Binary Cross-Entropy Loss
@@ -331,7 +334,7 @@ def create_argparse():
     """
     
     # Initialize the parser    
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(prog=prog, description=description)
     
     # Define arguments
     parser.add_argument("--run_name", default="DentSeg0", type=str, help="Name of the run")
