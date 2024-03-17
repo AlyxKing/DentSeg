@@ -358,9 +358,11 @@ def create_argparse():
     parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
     return parser
     
-def launch() -> tuple:
+def launch(**kwargs) -> tuple:
     os.chdir('/')
     parser = create_argparse()
+    #For setting arguments from launch()
+    parser.set_defaults(**kwargs)
     args = parser.parse_args()
     
     only_test = args.eval
