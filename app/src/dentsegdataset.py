@@ -361,9 +361,9 @@ def create_argparse():
 def launch(**kwargs) -> tuple:
     os.chdir('/')
     parser = create_argparse()
-    #For setting arguments from launch()
+    #For setting arguments from dict in jupyter notebook
     parser.set_defaults(**kwargs)
-    args = parser.parse_args()
+    args = parser.parse_args([])
     
     only_test = args.eval
     load_model = args.load_model
