@@ -39,8 +39,8 @@ from albumentations.pytorch import ToTensorV2
 
 #Local imports
 #sys.path.append(os.path.abspath("/mnt/dsml/projects/dentseg"))
-sys.path.append(os.path.abspath("/app/src"))
-sys.path.append(os.path.abspath("/app/dataset"))
+sys.path.append(os.path.abspath("/dentseg/app/src"))
+sys.path.append(os.path.abspath("/dentseg/app/dataset"))
 from lossfunctions import *
 from utils import *
 from HalfUNet import HUNet
@@ -368,7 +368,7 @@ def launch(**kwargs) -> tuple:
     only_test = args.eval
     load_model = args.load_model
     model_name = args.model_name
-    full_model = args.model
+    full_model = args.full_model
     
     dataset = DentsegDataset(conf=args, transform=True)
     generator = torch.Generator().manual_seed(42)
