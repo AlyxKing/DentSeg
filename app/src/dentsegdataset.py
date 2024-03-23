@@ -307,7 +307,7 @@ def load_dec(func, model_path, full_model=False):
             return func(*argv,**kwargs,model=model)
         args = argv[0]
         model = HUNet(c_in=args.in_c,c_out=args.out_c,
-                      ghost_mode=True,
+                      ghost_mode=args.sa,
                       flat=args.flat,
                       size=args.image_size,
                       device='cuda:0'
@@ -338,7 +338,7 @@ def create_argparse():
     
     # Define arguments
     parser.add_argument("--run_name", default="DentSeg0", type=str, help="Name of the run")
-    parser.add_argument("--epochs", default=10, type=int, help="Number of epochs for training")
+    parser.add_argument("--epochs", default=50, type=int, help="Number of epochs for training")
     parser.add_argument("--batch_size", default=25, type=int, help="Batch size for training")
     parser.add_argument("--image_size", default=256, type=int, help="Input image size")
     parser.add_argument("--dataset_path", default="/app/dataset", type=str, 
@@ -356,6 +356,7 @@ def create_argparse():
     parser.add_argument("--model_name", default=None, type=str, help="Specify model to load (if different from run_name)")
     parser.add_argument("--eval", action='store_true', help='ON/OFF flag for setting the model to evaluation mode (loaded')
     parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
+    parser.add_argument("--sa", action='store_true', help='Switches from ghost module to SA mode')
     return parser
     
 def launch(**kwargs) -> tuple:
