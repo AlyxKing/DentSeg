@@ -75,7 +75,9 @@ To configure and run the model, you can use the following command-line arguments
 * <strong><code>--in_c</code></strong> (default: <code>1</code>): Specify the number of input channels.
 * <strong><code>--out_c</code></strong> (default: <code>1</code>): Specify the number of output channels.
 * <strong><code>--flat</code></strong>: Use this flag to opt for a half U-Net unified channel width. The absence of this flag defaults to the standard U-Net channel doubling with each down step.
-
+* <strong><code>--ghost</code></strong> (default: <code>0</code>): Activate ghost module layers (improves model training speed at risk of output artifacting). This is an ON/OFF flag; include it in your command to turn it ON.
+* <strong><code>--sa</code></strong> (default: <code>1</code>): Activate self attention layers (improves model performance at high memory consumption cost). This is an ON/OFF flag; include it in your command to turn it ON.
+  
 ### **Model Loading Configuration Parameters**
 
 Further customize the model setup with these additional parameters:
