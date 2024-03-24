@@ -211,17 +211,15 @@ class OutStep(nn.Module):
         return x
         
 class HUNet(nn.Module):
-    def __init__(self, c_in=3, c_out=3, n_layers=4, conv_c=96, flat=True, size=256, ghost_mode=True, sa=False, device="cuda:0", **kwargs):
+    def __init__(self, c_in=3, c_out=3, n_layers=4, conv_c=96, flat=True, size=256, ghost_mode=False, device="cuda:0", **kwargs):
         super().__init__()
-        
         if flat == True:
             self.f_exp = 0
         else: self.f_exp = 1
-        
         self.init_chan = conv_c
         self.ghost = ghost_mode
         self.device = device
-        self.sa = sa
+        
         self.n_layers = n_layers
         
         #Creates channel schedule based on conv_c (eg. 64, 128, 512, ... , conv_c^n_layers)
@@ -242,6 +240,7 @@ class HUNet(nn.Module):
         #Move all layers to the correct device
         self.to(self.device)
         
+        #self.merge_op = Merge()
         
     
     # def pos_encoding(self, t, channels):
@@ -264,7 +263,7 @@ class HUNet(nn.Module):
         #Down
         for layer in range(self.n_layers):
             x = self.down_across[layer](x)
-            if self.sa:
+            if not self.ghost:
                 x = self.sa_blocks[layer](x)
             #For Half-UNet conf.
             if self.f_exp == 0:

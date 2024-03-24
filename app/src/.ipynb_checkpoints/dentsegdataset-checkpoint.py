@@ -224,13 +224,7 @@ def train(args, train_set, use_ema=False, model=None, model_path=None, mode='sem
     dataset = train_set#DentsegDataset(args.dataset_path,transform=True,desired_size=args.image_size)
     data_loader = DataLoader(dataset, batch_size=args.batch_size,shuffle=True,num_workers=1,) 
     if not model:
-        model = HUNet(c_in=args.in_c,
-                      c_out=args.out_c,
-                      ghost_mode= args.ghost,
-                      sa=args.sa,
-                      flat=args.flat,
-                      size=args.image_size,
-                      device='cuda:0').to(device)
+        model = HUNet(c_in=args.in_c,c_out=args.out_c,ghost_mode= not args.sa,flat=args.flat,size=args.image_size,device='cuda:0').to(device)
     model.train()
     if use_ema:
         ema = EMA(beta=0.995)
@@ -313,8 +307,7 @@ def load_dec(func, model_path, full_model=False):
             return func(*argv,**kwargs,model=model)
         args = argv[0]
         model = HUNet(c_in=args.in_c,c_out=args.out_c,
-                      ghost_mode=args.ghost,
-                      sa=args.sa,
+                      ghost_mode= not args.sa,
                       flat=args.flat,
                       size=args.image_size,
                       device='cuda:0'
@@ -363,8 +356,7 @@ def create_argparse():
     parser.add_argument("--model_name", default=None, type=str, help="Specify model to load (if different from run_name)")
     parser.add_argument("--eval", action='store_true', help='ON/OFF flag for setting the model to evaluation mode (loaded')
     parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
-    parser.add_argument("--sa", action='store_true', help='Activates the ghost module')
-    parser.add_argument("--ghost", action='store_true', help='Activates Self Attention blocks')
+    parser.add_argument("--sa", action='store_true', help='Switches from ghost module to SA mode')
     return parser
     
 def launch(**kwargs) -> tuple:
