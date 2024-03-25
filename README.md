@@ -8,7 +8,7 @@ This project showcases the segmentation of dental X-ray imagery using a PyTorch 
 
 ## Features
 
-- **Self Attention**: Optional Self attention offers vastly improved performance and reduced training requirements and cost of high memory requirements.
+- **Self Attention**: Optional Self attention offers vastly improved performance and reduced training requirements at cost of increased vram requirements.
 - **Ghost Module Integration**: Can be configured to use "cheap operations" to generate additional feature layers, maintaining the model's capability while making computational savings.
 - **Configurable Channels**: Offers the option to fix channels throughout the U-Net, adhering to the methodologies proposed by the Half U-Net paper.
 
