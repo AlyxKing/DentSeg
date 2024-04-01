@@ -8,7 +8,9 @@ Source:https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pyt
 Original Author: https://www.kaggle.com/bigironsphere
 
 Changes: Changed F.binary_cross_entropy in DiceBCELoss to F.binary_cross_enropy_with_logits
-to enable use of the pos_weight parameter for unbalanced segmentation
+to enable use of the pos_weight parameter for unbalanced segmentation.
+
+Added DISCLOSS for multi-instance segmentation
 """
 
 import sys
