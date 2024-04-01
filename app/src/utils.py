@@ -53,20 +53,6 @@ def get_data(args):
 #     return xray
 
 def apply_colored_mask(image, masks, threshold=0.5):
-    """
-    Applies multiple masks to an image, each in a specified color.
-    
-    Parameters:
-    - image: The original grayscale image.
-    - masks: A list of masks to apply.
-    - colors: A list of colors corresponding to each mask.
-    - threshold: The threshold for applying the masks.
-    
-    Returns:
-    - The image with colored masks applied.
-    """
-    # Ensure the image is in RGBA to overlay colors
-    
     colored_image = cv2.cvtColor(image*255,cv2.COLOR_GRAY2RGB)
     colored_image = torch.tensor(colored_image).detach().cpu().type(torch.uint8).permute(2,0,1)
     seg_mask = torch.tensor(logistic.cdf(masks)>threshold).detach().cpu()
@@ -75,15 +61,6 @@ def apply_colored_mask(image, masks, threshold=0.5):
     return colored_image.permute(1,2,0).numpy()
 
 def display_results(data, batch_no:int):
-    """
-    Displays an X-ray image with ground truth and predicted masks color-coded and overlaid.
-    
-    Parameters:
-    - data: A tuple containing the datasets (X-rays, ground truth masks, predicted masks).
-    - batch_no: The index of the image to display.
-    """
-    
-    
     x_ray_images, ground_truth_masks, predicted_masks = data[batch_no]
     num_sets = len(data[0][0])
     fig, axs = plt.subplots(num_sets, 3, figsize=(15, 5*num_sets))
