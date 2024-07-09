@@ -209,9 +209,22 @@ class OutStep(nn.Module):
         x = self.seq(x)
         x = self.finalconv(x)
         return x
+
+# class MapsToProba(nn.Module):
+#     def __init__(self, args, model, predicted_maps, maps):
+#         super().__init__()
+#         self.proba_model = nn.sequential(
+#             model,
+#             nn.Linear(args.out_c*args.image_size**2, args.out_c),
+#             )
+#         self.to(args.device)
+        
+#     def forward(self, x):
+#         x = self.proba_model(x)
+#         return x
         
 class HUNet(nn.Module):
-    def __init__(self, c_in=3, c_out=3, n_layers=4, conv_c=96, flat=True, size=256, ghost_mode=True, sa=False, device="cuda:0", **kwargs):
+    def __init__(self, c_in=3, c_out=3, n_layers=4, conv_c=96, flat=True, size=256, ghost_mode=True, sa=False, device="cuda:0", out_t='image', **kwargs):
         super().__init__()
         
         if flat == True:
@@ -223,6 +236,7 @@ class HUNet(nn.Module):
         self.device = device
         self.sa = sa
         self.n_layers = n_layers
+        self.out_t = out_t
         
         #Creates channel schedule based on conv_c (eg. 64, 128, 512, ... , conv_c^n_layers)
         form = lambda x: conv_c*(2**x)**self.f_exp
@@ -238,7 +252,13 @@ class HUNet(nn.Module):
         #Upsteps for standard UNet config
         else:
             self.upsteps = [UpStep(form(x+1),int(max(conv_c,form(x+1)/2)),2,device=self.device) for x in range(self.n_layers)]
+            
         self.outstep = OutStep(self.init_chan,c_out,ghost_mode=ghost_mode,device=self.device)
+        
+        #To train teeth map
+        if self.out_t == 'proba':
+            self.to_proba = nn.Linear(c_out*size**2, c_out)
+        
         #Move all layers to the correct device
         self.to(self.device)
         
@@ -266,7 +286,7 @@ class HUNet(nn.Module):
             x = self.down_across[layer](x)
             if self.sa:
                 x = self.sa_blocks[layer](x)
-            #For Half-UNet conf.
+            #Up (For Half-UNet conf.)
             if self.f_exp == 0:
                 self.pass_up = self.pass_up + self.upscalers[layer](x)
             else:
@@ -279,6 +299,9 @@ class HUNet(nn.Module):
             self.pass_up = x
             
         output = self.outstep(self.pass_up)
+        if self.out_t == 'proba':
+            output = self.to_proba(output.view(output.size(0), -1))
+            
         return output
     
 

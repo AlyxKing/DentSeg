@@ -28,6 +28,8 @@ from scipy.stats import logistic
 #Pytorch and albumentations
 import torch
 import torch.nn as nn
+import torchvision.models as models
+import torchvision.transforms as transforms
 #import torch.nn.functional as F
 #import torch.utils.checkpoint as checkpoint
 import albumentations as A
@@ -35,6 +37,7 @@ import albumentations as A
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision.transforms import Grayscale
 from albumentations.pytorch import ToTensorV2
 
 #Local imports
@@ -56,16 +59,19 @@ class DentsegDataset(Dataset):
     def __init__(self, conf, transform=True):
         """
         root_dir: Directory with all the images and annotation file.
-        desired_size: size of 1:1 letterboxed image
+        desired_size: size of 1:1 image
         """
         self.do_transform = transform
         self.args = conf
+        self.args.proba = (self.args.out_t == 'proba')
         self.target_size = self.args.image_size
         self.root_dir = self.args.dataset_path
         self.img_path = os.path.join(self.root_dir, "img")
         #self.mask_path = os.path.join(self.root_dir,"masks_machine")
         self.ann_path = os.path.join(self.root_dir, "ann")
-        if transform:
+        if transform and self.args.proba:
+            self.transform = self.transform_resnet(self.target_size)
+        elif transform:
             self.transform = self.transform_pipeline(self.target_size)
         #list of image paths
         self.images = [file for file in glob.glob("*.jpg",root_dir=self.img_path)]
@@ -103,6 +109,7 @@ class DentsegDataset(Dataset):
         poly_data = dict(zip(classes,polys))
             
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+              
         #image = cv2.imread(image_path, cv2.COLOR_BGR2RGB)
         if self.args.out_c == 1:
             mask_type = 'numpy'
@@ -114,6 +121,14 @@ class DentsegDataset(Dataset):
             output = mask_type
             )
         # Feed image and mask into transformation function
+        # if self.do_transform and self.args.proba:
+        #     augmented =  self.apply_transform(
+        #         image = images, 
+        #         transform = self.transform,
+        #         maps= None)
+        if self.args.proba:
+            image = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
+            #mask = cv2.cvtColor(mask,cv2.COLOR_GRAY2RGB)
         if self.do_transform:
             augmented = self.apply_transform(
                 image = image,
@@ -128,6 +143,15 @@ class DentsegDataset(Dataset):
         else:
             image = torch.from_numpy(image)
             mask = torch.from_numpy(mask)
+        
+        #transform masks to vector for proba mode
+        if self.args.out_t == 'proba':
+            classes = [int(i) for i in classes]
+            proba = np.zeros(32)
+            for i in classes:
+                proba[i-1] = 1
+            return image, proba
+        
         return image, mask
     
     @staticmethod
@@ -183,15 +207,28 @@ class DentsegDataset(Dataset):
         ],additional_targets={'mask': 'mask'}
         )
         return transform
-
+    
     @staticmethod
-    def apply_transform(image, mask, transform, labels):
+    def transform_resnet(desired_size):
+        transform = A.Compose([
+            A.Resize(
+                desired_size,
+                desired_size,
+                always_apply=True,
+                ),
+            A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ToTensorV2(),
+            ],additional_targets={'mask': 'mask'}
+            )        
+        return transform
+    
+    @staticmethod
+    def apply_transform(image, transform, labels=None, mask=None):
         #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         transformed = transform(image=image,mask=mask,labels=labels)
         return transformed    
 
 class EMA:
-    #Work this into the training loop
     def __init__(self, beta):
         super().__init__()
         self.beta = beta
@@ -218,20 +255,41 @@ class EMA:
     def reset_parameters(self, ema_model, model):
         ema_model.load_state_dict(model.state_dict())
 
-def train(args, train_set, use_ema=False, model=None, model_path=None, mode='semantic'):
+def train(args, train_set, 
+          use_ema=False, model=None, 
+          proba_model=None, model_path=None, 
+          proba_model_path=None, mode='semantic'):
     setup_logging(args)
     device = args.device
     dataset = train_set#DentsegDataset(args.dataset_path,transform=True,desired_size=args.image_size)
     data_loader = DataLoader(dataset, batch_size=args.batch_size,shuffle=True,num_workers=1,) 
-    if not model:
+    
+    if not model and args.out_t == 'proba':
+        model = torch.hub.load('pytorch/vision:v0.10.0', 
+                               'resnet50', 
+                               weights=models.ResNet50_Weights.DEFAULT).to(device)
+        model = MapsToProba(args, model)
+        
+    elif not model:
         model = HUNet(c_in=args.in_c,
                       c_out=args.out_c,
+                      out_t=args.out_t,
                       ghost_mode= args.ghost,
                       sa=args.sa,
                       flat=args.flat,
                       size=args.image_size,
+                      layers=args.layers,
+                      conv_c=args.l0_c,
                       device='cuda:0').to(device)
+    
+    if not proba_model and args.out_t == 'f-mask':
+        proba_model = torch.load(proba_model_path)
+        
+    if proba_model:
+        proba_model.eval()
+        resnet_trans = ResnetImage(args)
     model.train()
+    
     if use_ema:
         ema = EMA(beta=0.995)
         ema_model = copy.deepcopy(model).eval().requires_grad_(False)
@@ -248,19 +306,27 @@ def train(args, train_set, use_ema=False, model=None, model_path=None, mode='sem
             
             images = images.to(device)
             #For single instance segmentation, convert to boolean bit mask
-            maps = maps.bool().type(torch.uint8)
-            maps = maps.reshape(len(maps),
-                                args.out_c, 
-                                args.image_size,
-                                args.image_size).float().to(device)
+            maps = maps.bool().type(torch.uint8).float().to(device)
+            if args.out_t != 'proba':
+                maps = maps.reshape(len(maps),
+                                    args.out_c,
+                                    args.image_size,
+                                    args.image_size
+                                    )
             predicted_maps = model(images)
-            loss = loss_func(predicted_maps, maps)
+            
+            if proba_model:
+                res_img = resnet_trans(images)
+                proba_filter = proba_model(res_img)
+                loss = loss_func(predicted_maps, maps, proba_filter)
+            else:
+                loss = loss_func(predicted_maps, maps)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             if use_ema:
                 ema.step_ema(ema_model,model,step_start_ema=2000)
-            if args.lossfunc == "DISCLOSS":
+            if args.lossfunc == "DISCLOSS" or args.lossfunc == "FILTERLOSS":
                 l_comps = loss_func.comps
                 pbar.set_postfix(LOSS=loss.item(), COMPS=l_comps, epoch="{}/{}".format(epoch+1,args.epochs))
             else:
@@ -272,55 +338,138 @@ def train(args, train_set, use_ema=False, model=None, model_path=None, mode='sem
             torch.save(model, os.path.join(args.dataset_path,"models", args.run_name, "ckpt.pth"))
             if use_ema:
                 torch.save(ema_model, os.path.join(args.dataset_path,"models", args.run_name, "ema_ckpt.pth"))
-    return model
+    return model, proba_model
 
-
-def test(args, data, model) -> tuple:
+def test(args, data, model, proba_model=None) -> tuple:
     with torch.no_grad():
+        if proba_model:
+            proba_model.eval()
+            resnet_trans = ResnetImage(args)
         model.eval()
-        data_loader = DataLoader(data, batch_size=args.batch_size,shuffle=True,num_workers=1,) 
+        data_loader = DataLoader(
+                        data, 
+                        batch_size=args.batch_size,
+                        shuffle=True,
+                        num_workers=1,
+                        )
+        
         loss_func = loss_function(args.evalfunc)
         logger = SummaryWriter(os.path.join(args.dataset_path,"runs", args.run_name + "test_set"))
         pbar = tqdm(data_loader)
         batch_loss = {}
+        batch_acc = {}
         test_samples = []
         for i, (images, maps) in enumerate(pbar):
             images = images.to(device)
-            maps = maps.bool().type(torch.uint8)
-            maps = maps.reshape(len(maps),
-                                args.out_c,
-                                args.image_size,
-                                args.image_size
-                                ).float().to(device)
+            maps = maps.bool().type(torch.uint8).float().to(device)
+            if args.out_t != 'proba':
+                maps = maps.reshape(len(maps),
+                                    args.out_c,
+                                    args.image_size,
+                                    args.image_size
+                                    )#.float().to(device)
             predicted_maps = model(images)
-            loss = loss_func(predicted_maps, maps)
             
+            if proba_model:
+                res_img = resnet_trans(images)
+                proba_filter = proba_model(res_img)
+                loss = loss_func(predicted_maps, maps, proba_filter)
+            else:
+                loss = loss_func(predicted_maps, maps)
+            
+            accuracy = calculate_accuracy(predicted_maps, maps)
             batch_loss[i] = loss.detach().cpu().numpy()
+            batch_acc[i] = accuracy
             output = (images.detach().cpu().numpy(), maps.detach().cpu().numpy(), predicted_maps.detach().cpu().numpy())
             test_samples.append(output)
-            pbar.set_postfix(IOU=loss.item())
+            pbar.set_postfix({'Loss':loss.item(),'Acc.': accuracy})
             logger.add_scalar(args.evalfunc, loss.item())
-            print(f"test loss: {loss.item()}")
+            print(f"test loss: {loss.item()}, accuracy: {accuracy}")
         batch_loss = pd.Series(batch_loss)
+        batch_acc = pd.Series(batch_acc)
         print(f"mean loss: {batch_loss.mean()}")
-        return test_samples, model
+        return test_samples, model, proba_model
+
+def calculate_accuracy(output, target):
+    output = torch.sigmoid(output) >= 0.5
+    correct = (target == output).sum().item()
+    return correct / output.numel()
+
+# def calculate_error()
+
+class ResnetImage(nn.Module):
+    def __init__(self, args):
+        super().__init__()
+        self.torchvision_transform = transforms.Compose([
+        transforms.Lambda(lambda x: x.repeat(1,3, 1, 1)),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        )
+        ])
+        self.to(args.device)
     
-def load_dec(func, model_path, full_model=False):
+    def forward(self, x):
+        x = self.torchvision_transform(x) 
+        return x
+
+class MapsToProba(nn.Module):
+    def __init__(self, args, model):
+        super().__init__()
+        self.proba_model = nn.Sequential(
+            model,
+            nn.Linear(1000, args.out_c),
+            )
+        self.to(args.device)
+        
+    def forward(self, x):
+        x = self.proba_model(x)
+        return x
+
+
+def load_dec(func, model_path, full_model=False, proba_model_path=None):
     #decorator to load model
     def wrapper(*argv,**kwargs):
-        if full_model:
-            model = torch.load(model_path)
-            return func(*argv,**kwargs,model=model)
         args = argv[0]
+        if full_model and not args.out_t == 'proba':
+            model = torch.load(model_path)
+            if proba_model_path:
+                #proba_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', weights=models.ResNet50_Weights.DEFAULT).to(device)
+                #proba_model = MapsToProba(args, proba_model)
+                try:
+                    proba_model = torch.load(proba_model_path)
+                except:
+                    print('Failed to load state dict.')
+                    pass
+            return func(*argv,**kwargs,model=model,proba_model=proba_model)
+        elif full_model:
+            try:
+                model = torch.load(model_path)
+            except:
+                model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', weights=models.ResNet50_Weights.DEFAULT).to(device)
+                model = MapsToProba(args, model)
+            proba_model = None
+            return func(*argv,**kwargs,model=model,proba_model=proba_model)
         model = HUNet(c_in=args.in_c,c_out=args.out_c,
                       ghost_mode=args.ghost,
                       sa=args.sa,
                       flat=args.flat,
                       size=args.image_size,
-                      device='cuda:0'
-                      ).to(device)
+                      device=args.device,
+                      out_t=args.out_t,
+                      layers=args.layers,
+                      conv_c=args.l0_c,
+                      ).to(args.device)
         model.load_state_dict(torch.load(model_path))
-        return func(*argv,**kwargs,model=model)
+        if proba_model_path:
+            proba_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', weights=models.ResNet50_Weights.DEFAULT).to(device)
+            proba_model = MapsToProba(args, proba_model)
+            try:
+                proba_model = proba_model.load_state_dict(torch.load(proba_model_path))
+            except:
+                print('Failed to load state dict.')
+                pass
+        return func(*argv,**kwargs,model=model,proba_model=proba_model)
     return wrapper
 
 def create_argparse():
@@ -338,6 +487,9 @@ def create_argparse():
     - TVERSKY: Tversky Loss
     - FOCALTVERSKY: Focal Tversky Loss
     - DISCLOSS: Discriminative Loss (for multi-instance segmentation only)
+    - BCE_PROBA: Unweighted BCE loss for training proba model
+    - FILTERLOSS: Compound loss for filter mask (f-mask) mode
+    - MSE: Mean squared error loss
     """
     
     # Initialize the parser    
@@ -356,11 +508,15 @@ def create_argparse():
     parser.add_argument("--evalfunc", default="IOU", type=str, 
                         help="Evaluation function for model performance (e.g., 'IOU')")
     parser.add_argument("--lr", default=1e-4, type=float, help="Learning rate")
+    parser.add_argument("--layers", default=4, type=int, help="layers in U-Net")
+    parser.add_argument("--l0_c", default=96, type=int, help="channels in layer 0")
     parser.add_argument("--in_c", default=1, type=int, help="No. of input channels")
     parser.add_argument("--out_c", default=1, type=int, help="No. of output channels")
+    parser.add_argument('--out_t', type=str, default='mask', choices=['mask', 'proba', 'f-mask'], help='Output type for the model. A proba model must be saved and specified to use f-mask')
     parser.add_argument("--flat", action='store_true', help="ON/OFF flag for half U-Net unified channel width")
     parser.add_argument("--load_model", action='store_true', help="ON/OFF flag for loading model")
     parser.add_argument("--model_name", default=None, type=str, help="Specify model to load (if different from run_name)")
+    parser.add_argument("--proba_model_name", default=None, type=str, help="Specify proba model to load (if running in f-mask mode)")
     parser.add_argument("--eval", action='store_true', help='ON/OFF flag for setting the model to evaluation mode (loaded')
     parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
     parser.add_argument("--sa", action='store_true', help='Activates the ghost module')
@@ -387,28 +543,37 @@ def launch(**kwargs) -> tuple:
         model_path = os.path.join(args.dataset_path,"models", args.run_name, "ckpt.pth")
     else:
         model_path = os.path.join(args.dataset_path,"models", args.run_name, model_name + ".pth")
+    
+    if args.proba_model_name:
+        proba_model_path = os.path.join(args.dataset_path,"models", args.proba_model_name, "ckpt.pth")
+        print(proba_model_path)
+    else:
+        proba_model_path = None
         
     if load_model and not only_test:
-        loader = load_dec(train, model_path, full_model=full_model)
-        model = loader(args, train_data)
-        output, model = test(args, test_data, model)
-        return model, output
+        loader = load_dec(train, model_path, full_model=full_model, proba_model_path=proba_model_path)
+        model, proba_model = loader(args, train_data)
+        output, model, proba_model = test(args, test_data, model, proba_model)
+        return model, proba_model, output
     elif load_model and only_test:
-        loader = load_dec(test, model_path, full_model=full_model)
-        output, model = loader(args, test_data)
-        return model, output
+        loader = load_dec(test, model_path, full_model=full_model, proba_model_path=proba_model_path)
+        output, model, proba_model = loader(args, test_data)
+        return model, proba_model, output
     elif only_test and not load_model:
         try:
-            output, model = test(args, test_data, model)
-            return model, output
+            output, model, proba_model = test(args, test_data, model)
+            return model, proba_model, output
         except:
             print('Provide HalfUNet model')     
             
-    model = train(args, train_data, use_ema=True)
-    output = test(args, test_data, model)[0]
-    return model, output
+    model, proba_model = train(args, train_data, use_ema=True, proba_model_path=proba_model_path)
+    output, model, proba_model  = test(args, test_data, model=model, proba_model=proba_model)
+    return model, proba_model, output
+
+eval_loss = pd.Series
+eval_acc = pd.Series
 
 if __name__ == '__main__':
-    model, output = launch()
+    model, proba_model, output = launch()
 
 

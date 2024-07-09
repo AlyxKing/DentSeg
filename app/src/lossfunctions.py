@@ -30,6 +30,7 @@ def loss_function(function='BCE', ratio=10.0):
     pos_weight = torch.tensor([ratio]).to(device)
     #weight = torch.tensor([1.0,ratio]).to(device)
     loss_functions = {}
+    
     loss_functions['BCE'] = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     loss_functions['IOU'] = IoULoss()
     loss_functions['DICE'] = DiceLoss()
@@ -39,6 +40,12 @@ def loss_function(function='BCE', ratio=10.0):
     loss_functions['FOCALTVERSKY'] = FocalTverskyLoss()
     #For use in multi-instance mode only
     loss_functions['DISCLOSS'] = DiscLoss(func=loss_functions["DICEBCE"], weight=pos_weight*10)
+    #For use in proba mode
+    loss_functions['BCE_proba'] = nn.BCEWithLogitsLoss()
+    loss_functions['MSE'] = nn.MSELoss()
+    #For use in filter loss mode
+    loss_functions['FILTERLOSS'] = FilterLoss(func1=loss_functions["DICEBCE"], func2=loss_functions["FOCAL"], weight=pos_weight*10)
+    
     return loss_functions[function]
 
 class DiscLoss(nn.Module):
@@ -65,8 +72,8 @@ class DiscLoss(nn.Module):
         
         #conditional identities
         i1 = int(loss_1 < 0.7)
-        i2 = int(disc_loss1 > 0.05)
-        i3 = int(disc_loss2 > 0.05)
+        i2 = int(disc_loss1 > 0.01)
+        i3 = int(disc_loss2 > 0.01)
         
         #loss components
         l1 = 1*loss_1
@@ -76,7 +83,57 @@ class DiscLoss(nn.Module):
         self.comps = (loss_1.item(),disc_loss1.item(),disc_loss2.item())
         
         return alpha*l1 + beta*l2 + gamma*l3
-    
+
+class FilterLoss(nn.Module):
+#A dice loss function that adds an instance dicrimination term
+    def __init__(self, func1, func2=None, weight=None, size_average=True):
+        super(FilterLoss, self).__init__()
+        self.loss_1 = func1
+        self.loss_2 = func2
+        
+    def forward(self, inputs, targets, pred_vector, 
+                alpha=0.5, beta=0.8, gamma=0.8, 
+                delta=0.5, smooth=1, lambda_penalty=1, theta=1):
+        # dice / diceBCE loss
+        loss_1 = self.loss_1(inputs, targets)
+        if self.loss_2:
+            loss_2 = theta * self.loss_2(inputs, targets)
+        
+        # instance discrimination loss
+        pred_diff = torch.abs(inputs[:, 1:, :, :] - inputs[:, :-1, :, :])
+        disc_loss1 = torch.mean(F.relu(delta - pred_diff))
+        
+        # instance discrimination loss 2
+        inputs = (F.sigmoid(inputs) >= 0.5).float()
+        mask_sum = torch.sum(inputs, dim=1)
+        mask_sum = mask_sum - torch.ones_like(mask_sum).float()
+        mask_sum = torch.clamp(mask_sum, 0) / (inputs.shape[1] / 2)
+        disc_loss2 = torch.mean(mask_sum)
+        
+        # prediction vector penalty loss
+        target_weights = torch.sum(targets, dim=(2,3))/ (targets.shape[2] * targets.shape[3])
+        pred_vector = pred_vector.float()
+        populated_instances = torch.sum(inputs, dim=(2, 3))  # Sum over height and width dimensions
+        num_elements = inputs.shape[2] * inputs.shape[3]  # Total number of elements in each instance
+        normalized_populated_instances = populated_instances / num_elements  # Normalize the populated instances
+        pred_penalty_loss = F.mse_loss(normalized_populated_instances, pred_vector * torch.median(target_weights)*1.1)
+        
+        # conditional identitiesaa
+        i1 = int(loss_1 < 0.7)
+        i2 = int(disc_loss1 > 0.01)
+        i3 = int(disc_loss2 > 0.01)
+        
+        # loss components
+        l1 = 1 * loss_1
+        l2 = i1 * i2 * disc_loss1
+        l3 = i1 * i3 * disc_loss2
+        l4 = lambda_penalty * pred_penalty_loss
+        l5 = loss_2
+        
+        self.comps = (loss_1.item(), disc_loss1.item(), disc_loss2.item(), pred_penalty_loss.item(), loss_2.item())
+        
+        return alpha * l1 + beta * l2 + gamma * l3 + l4 + l5
+
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(DiceLoss, self).__init__()
@@ -137,7 +194,7 @@ class IoULoss(nn.Module):
         union = total - intersection 
         
         IoU = (intersection + smooth)/(union + smooth)
-                
+        IoU = IoU.mean()
         return 1 - IoU
 
 #ALPHA = 0.8
