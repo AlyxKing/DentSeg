@@ -5,16 +5,15 @@
 
 このプロジェクトは、フレキシブルなU-NetアーキテクチャのPyTorch実装を使用して、歯科X線画像のセグメンテーションを紹介します。["Half U-Net: A Simplified U-Net Architecture for Medical Image Segmentation"](https://www.frontiersin.org/articles/10.3389/fninf.2022.911679/full) の論文で詳述されているように、Half U-Netモードで動作する機能を導入します。さらに、この構造のバリエーションを組み込み、["GhostNet: More Features from Cheap Operations"](https://paperswithcode.com/method/ghost-module) と "GhostNetV2: Enhance Cheap Operation with Long-Range Attention" からのゴーストモジュールv2のコンセプトを統合して、最小限の計算要件で追加の特徴層を作成します。
 
-## **結果例**
-
-![test](test.png)
-
 ## **特徴**
 
 * **フレキシブルなU-Netアーキテクチャ**: 効率的な計算を実現しつつ、セグメンテーション性能を維持するためにHalf U-Netモードに調整可能。
 * **ゴーストモジュールの統合**: 「安価な操作」を利用して追加の特徴層を生成し、モデルの能力を維持しつつ計算コストを節約。
 * **設定可能なチャネル**: Half U-Net論文で提案されている方法論に従って、U-Net全体でチャネルを固定するオプションを提供。
 
+## **結果例**
+
+![test](test.png)
 
 ## **データセット**
 
