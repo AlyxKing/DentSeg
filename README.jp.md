@@ -5,10 +5,11 @@
 
 このプロジェクトは、フレキシブルなU-NetアーキテクチャのPyTorch実装を使用して、歯科X線画像のセグメンテーションを紹介します。["Half U-Net: A Simplified U-Net Architecture for Medical Image Segmentation"](https://www.frontiersin.org/articles/10.3389/fninf.2022.911679/full) の論文で詳述されているように、Half U-Netモードで動作する機能を導入します。さらに、この構造のバリエーションを組み込み、["GhostNet: More Features from Cheap Operations"](https://paperswithcode.com/method/ghost-module) と "GhostNetV2: Enhance Cheap Operation with Long-Range Attention" からのゴーストモジュールv2のコンセプトを統合して、最小限の計算要件で追加の特徴層を作成します。
 
+## **結果例**
+
+![test](test.png)
 
 ## **特徴**
-
-
 
 * **フレキシブルなU-Netアーキテクチャ**: 効率的な計算を実現しつつ、セグメンテーション性能を維持するためにHalf U-Netモードに調整可能。
 * **ゴーストモジュールの統合**: 「安価な操作」を利用して追加の特徴層を生成し、モデルの能力を維持しつつ計算コストを節約。
@@ -19,7 +20,7 @@
 
 トレーニングに使用された歯科X線画像データセットは、[Humans in the Loop Dental x-ray imagery](https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images) から入手されました。
 
-データセットの簡易版[ アーカイブ](https://chat.openai.com/c/dentseg_dataset.tar.gz) が提供されています。
+データセットの簡易版[ アーカイブ](dentseg_dataset.tar.gz) が提供されています。
 
 
 ## **インストール**
@@ -160,7 +161,7 @@ python dentsegdataset.py --run_name DentSeg5 --epochs 200 --batch_size 4 --image
 
 ## **ライセンス**
 
-このプロジェクトはGNU General Public License v3.0の下でライセンスされています - 詳細については、[LICENSE](https://chat.openai.com/c/LICENSE)ファイルを参照してください。
+このプロジェクトはGNU General Public License v3.0の下でライセンスされています - 詳細については、[LICENSE](LICENSE)ファイルを参照してください。
 
 
 ## **謝辞**
