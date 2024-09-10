@@ -5,21 +5,21 @@
 
 このプロジェクトは、フレキシブルなU-NetアーキテクチャのPyTorch実装を使用して、歯科X線画像のセグメンテーションを紹介します。["Half U-Net: A Simplified U-Net Architecture for Medical Image Segmentation"](https://www.frontiersin.org/articles/10.3389/fninf.2022.911679/full) の論文で詳述されているように、Half U-Netモードで動作する機能を導入します。さらに、この構造のバリエーションを組み込み、["GhostNet: More Features from Cheap Operations"](https://paperswithcode.com/method/ghost-module) と "GhostNetV2: Enhance Cheap Operation with Long-Range Attention" からのゴーストモジュールv2のコンセプトを統合して、最小限の計算要件で追加の特徴層を作成します。
 
-
 ## **特徴**
-
-
 
 * **フレキシブルなU-Netアーキテクチャ**: 効率的な計算を実現しつつ、セグメンテーション性能を維持するためにHalf U-Netモードに調整可能。
 * **ゴーストモジュールの統合**: 「安価な操作」を利用して追加の特徴層を生成し、モデルの能力を維持しつつ計算コストを節約。
 * **設定可能なチャネル**: Half U-Net論文で提案されている方法論に従って、U-Net全体でチャネルを固定するオプションを提供。
 
+## **結果例**
+
+![test](test.png)
 
 ## **データセット**
 
 トレーニングに使用された歯科X線画像データセットは、[Humans in the Loop Dental x-ray imagery](https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images) から入手されました。
 
-データセットの簡易版[ アーカイブ](https://chat.openai.com/c/dentseg_dataset.tar.gz) が提供されています。
+データセットの簡易版[ アーカイブ](dentseg_dataset.tar.gz) が提供されています。
 
 
 ## **インストール**
@@ -104,6 +104,7 @@ DentSegモデルは、データセットとトレーニング要件に合わせ�
 * **<code>--lr</code>** (デフォルト: <code>1e-4</code>)：学習率を設定します。
 * **<code>--in_c</code>** (デフォルト: <code>1</code>)：入力チャネルの数を指定します。
 * **<code>--out_c</code>** (デフォルト: <code>1</code>)：出力チャネルの数を指定します。
+* **<code>--out_t</code>** (デフォルト: <code>mask</code>): モデルの出力タイプを設定します（mask、proba、f-mask）。f-maskを使用するにはprobaモデルを指定する必要があります。指定されたprobaモデルは、歯の二重マスキングを緩和し、マスク層をフィルタリングします。
 * **<code>--flat</code>**：Half U-Net統一チャネル幅を選択するためにこのフラグを使用します。このフラグがない場合、標準のU-Netチャネルは各ダウンステップで倍増します。
 * **<code>--ghost</code>**：ゴーストモジュール層を有効にする（モデルのトレーニング速度を向上させるが、画像のアーティファクトのリスクがある）これはON/OFFフラグです；コマンドに含めてONにします。
 * **<code>--sa</code>**: セルフアテンション層を有効にする（高いメモリ消費コストでモデルの性能を向上させる）これはON/OFFフラグです；コマンドに含めてONにします。これはON/OFFフラグです；コマンドに含めてONにします。
@@ -118,6 +119,7 @@ DentSegモデルは、データセットとトレーニング要件に合わせ�
 * **<code>--load_model</code>**：トレーニングプロセスを開始する前に、事前に訓練されたモデルをロードするためにこのフラグを使用します。これはON/OFFフラグです；コマンドに含めてONにします。
 * **<code>--model_name</code>** (デフォルト: <code>None</code>)：事前に訓練されたモデルをロードしており、それが<code>run_name</code>と異なる名前の場合、この引数でモデルの名前を指定します。これは、以前に保存されたモデル状態からトレーニングを続けたり、事前に訓練されたモデルを評価したりする場合に特に便利です。
 * **<code>--eval</code>**：このフラグはモデルを評価モードのみに設定します。トレーニングはスキップされ、データセットでのテストのみが実行されます。
+* **<code>--proba_model_name</code>** f-maskで使用する事前トレーニング済みのprobaモデルを指定します（コードはresnet-50モデルを微調整して使用するように構成されています）。まず、<code>--out_t proba</code>を使用してprobaモデルをトレーニングします。
 * **<code>--full_model</code>**：モデルのロード方法を制御するためのフラグです。デフォルトでは、モデルローディングメカニズムは状態辞書を期待しています。保存されたモデルがより複雑な構造（例：オプティマイザ、スケジューラ）を含む場合、このフラグを使用して完全なモデルをロードします。これはON/OFFフラグです；コマンドに含めてONにします。
 
 
@@ -146,6 +148,9 @@ python dentsegdataset.py --run_name DentSeg5 --epochs 200 --batch_size 4 --image
 * **TVERSKY:** テバースキー損失
 * **FOCALTVERSKY:** フォーカルテバースキー損失
 * **DISCLOSS:** 判別損失（複数インスタンスのセグメンテーションのみ）
+* **BCE_PROBA:** probaモデルのトレーニング用の無重み付きBCE損失
+* **FILTERLOSS:** f-maskモードで使用する5つの成分からなる複合損失
+* **MSE:** 平均二乗誤差損失
 
 
 ### **コンテナからの実行：**
@@ -155,7 +160,7 @@ python dentsegdataset.py --run_name DentSeg5 --epochs 200 --batch_size 4 --image
 
 ## **ライセンス**
 
-このプロジェクトはGNU General Public License v3.0の下でライセンスされています - 詳細については、[LICENSE](https://chat.openai.com/c/LICENSE)ファイルを参照してください。
+このプロジェクトはGNU General Public License v3.0の下でライセンスされています - 詳細については、[LICENSE](LICENSE)ファイルを参照してください。
 
 
 ## **謝辞**
