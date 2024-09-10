@@ -86,6 +86,7 @@ def display_results(data, batch_no:int):
     
     # Show the plot
     plt.show()
+    return fig, axs
 
     
     

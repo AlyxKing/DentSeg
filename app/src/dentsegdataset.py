@@ -519,8 +519,8 @@ def create_argparse():
     parser.add_argument("--proba_model_name", default=None, type=str, help="Specify proba model to load (if running in f-mask mode)")
     parser.add_argument("--eval", action='store_true', help='ON/OFF flag for setting the model to evaluation mode (loaded')
     parser.add_argument("--full_model", action='store_true', help='ON/OFF switch for loading full_model as opposed to state space dict')
-    parser.add_argument("--sa", action='store_true', help='Activates the ghost module')
-    parser.add_argument("--ghost", action='store_true', help='Activates Self Attention blocks')
+    parser.add_argument("--sa", action='store_true', help='Activates Self Attention blocks')
+    parser.add_argument("--ghost", action='store_true', help='Activates the ghost module')
     return parser
     
 def launch(**kwargs) -> tuple:
@@ -554,20 +554,36 @@ def launch(**kwargs) -> tuple:
         loader = load_dec(train, model_path, full_model=full_model, proba_model_path=proba_model_path)
         model, proba_model = loader(args, train_data)
         output, model, proba_model = test(args, test_data, model, proba_model)
+        save_path = os.path.join(args.dataset_path,"results","output.jpg")
+        fig, axs = display_results(output,6)
+        fig.show()
+        fig.savefig(save_path) 
         return model, proba_model, output
     elif load_model and only_test:
         loader = load_dec(test, model_path, full_model=full_model, proba_model_path=proba_model_path)
         output, model, proba_model = loader(args, test_data)
+        save_path = os.path.join(args.dataset_path,"results","output.jpg")
+        fig, axs = display_results(output,6)
+        fig.show()
+        fig.savefig(save_path) 
         return model, proba_model, output
     elif only_test and not load_model:
         try:
             output, model, proba_model = test(args, test_data, model)
+            save_path = os.path.join(args.dataset_path,"results","output.jpg")
+            fig, axs = display_results(output,6)
+            fig.show()
+            fig.savefig(save_path) 
             return model, proba_model, output
         except:
             print('Provide HalfUNet model')     
             
     model, proba_model = train(args, train_data, use_ema=True, proba_model_path=proba_model_path)
     output, model, proba_model  = test(args, test_data, model=model, proba_model=proba_model)
+    save_path = os.path.join(args.dataset_path,"results","output.jpg")
+    fig, axs = display_results(output,6)
+    fig.show()
+    fig.savefig(save_path) 
     return model, proba_model, output
 
 eval_loss = pd.Series
@@ -575,5 +591,7 @@ eval_acc = pd.Series
 
 if __name__ == '__main__':
     model, proba_model, output = launch()
-
+    save_path = os.path.join(args.dataset_path,"results","output.jpg")
+    # fig, axs = display_results(output,6)
+    # fig.savefig(save_path) 
 
